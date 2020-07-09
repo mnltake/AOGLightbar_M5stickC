@@ -2,7 +2,7 @@
 ////////////////// User Settings /////////////////////////
   #define USE_BLUETOOTH_SERIAL 1         // use USB Serial -> 0  use Bluetooth Serial -> 1
   #define NUMPIXELS   30                 //How many pixels
-  #define Neopixel_Pin 32                //GPIP32:M5stickC  GPIO26:M5Lite
+  #define Neopixel_Pin 32                //GPIP32:M5stickC  GPIO26:ATOMLite
   #define mmPerLightbarPixel  40         // 40 = 4cm
   #define NIGHT_BRIGHTNESS 50            //night mode brightness
   #define USE_LCD 1                      //1:LCD display(onlyM5stickC)
