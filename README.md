@@ -48,4 +48,4 @@ https://www.switch-science.com/catalog/5217/
 
 **Press the front button to switch to night mode**
 
-![twitter](https://twitter.com/mnlt18/status/1281016090550652928) 
+https://twitter.com/mnlt18/status/1281016090550652928
