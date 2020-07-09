@@ -47,3 +47,4 @@ https://www.switch-science.com/catalog/5217/
 **AOG send distanceFromLine data only in Autosteer mode**
 
 **Press the front button to switch to night mode**
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">External Light Bar for <a href="https://twitter.com/hashtag/AgOpenGPS?src=hash&amp;ref_src=twsrc%5Etfw">#AgOpenGPS</a> <br>on <a href="https://twitter.com/hashtag/M5StickC?src=hash&amp;ref_src=twsrc%5Etfw">#M5StickC</a> <br>BluetoothSerial connection <a href="https://t.co/haLmXN42JO">pic.twitter.com/haLmXN42JO</a></p>&mdash; mnl_t (@mnlt18) <a href="https://twitter.com/mnlt18/status/1281016090550652928?ref_src=twsrc%5Etfw">July 9, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
