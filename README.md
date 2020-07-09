@@ -47,3 +47,5 @@ https://www.switch-science.com/catalog/5217/
 **AOG send distanceFromLine data only in Autosteer mode**
 
 **Press the front button to switch to night mode**
+
+https://twitter.com/mnlt18/status/1281016090550652928
