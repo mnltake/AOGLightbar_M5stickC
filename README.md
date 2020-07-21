@@ -38,7 +38,7 @@ https://www.switch-science.com/catalog/5217/
 ```
   #define USE_BLUETOOTH_SERIAL 1         // 0:use USB Serial   1:use Bluetooth Serial
   #define NUMPIXELS   30                 //How many pixels
-  #define Neopixel_Pin 32                //GPIP32:M5stickC  GPIO26:ATOMLite
+  #define Neopixel_Pin 32                //GPIO32:M5stickC  GPIO26:ATOMLite
   #define mmPerLightbarPixel  40         // 40 = 4cm
   #define NIGHT_BRIGHTNESS 50            //night mode brightness
   #define USE_LCD 1                      //1:LCD display(onlyM5stickC)
