@@ -27,11 +27,11 @@
 
  
   //--------------------------- Switch Input Pins ------------------------
-  #define STEERSW_PIN 26 //G26
-  #define WORKSW_PIN 33  //G33
+  #define STEERSW_PIN 33 //G33
+  #define WORKSW_PIN 26  //G26
   #define REMOTE_PIN 0  //G0
   #define ANALOG_SENSOR_PIN 36 //G36
-
+  #define LED_PIN 10 //G10
   #define CONST_180_DIVIDED_BY_PI 57.2957795130823
 
   //loop time variables in microseconds  
@@ -121,7 +121,7 @@
       uint8_t MotorDriveDirection = 0;
       uint8_t SingleInputWAS = 1;
       uint8_t CytronDriver = 1;
-      uint8_t SteerSwitch = 0;  //1 if switch selected
+      uint8_t SteerSwitch = 1;  //1 if switch selected
       uint8_t SteerButton = 0;  //1 if button selected
       uint8_t ShaftEncoder = 0;
       uint8_t PressureSensor = 0;
@@ -165,7 +165,7 @@ void lightbar(uint8_t distanceFromLine ){
       M5.Lcd.setTextColor(WHITE);
     }
   M5.Lcd.setCursor(16, 15);
-  M5.Lcd.printf("%4d",cross_track_error*cmPerDistInt);
+  M5.Lcd.printf("%4d",cross_track_error);
   }
 }
 
@@ -177,7 +177,7 @@ void lightbar(uint8_t distanceFromLine ){
     pinMode(STEERSW_PIN, INPUT_PULLUP); 
     pinMode(REMOTE_PIN, INPUT_PULLUP); 
 
-    
+    pinMode(LED_PIN, OUTPUT); 
     //set up communication
     SerialAOG.begin("M5stickC LightBar"); //Bluetooth Serial
 
@@ -193,12 +193,12 @@ void lightbar(uint8_t distanceFromLine ){
   {
     M5.update();
  
-    // Loop triggers every 100 msec and sends back steer angle etc   
-    currentTime = millis();
+  	// Loop triggers every 100 msec and sends back steer angle etc	 
+  	currentTime = millis();
    
-    if (currentTime - lastTime >= LOOP_TIME)
-    {
-      lastTime = currentTime;
+  	if (currentTime - lastTime >= LOOP_TIME)
+  	{
+  		lastTime = currentTime;
   
       //reset debounce
       encEnable = true;
@@ -208,6 +208,7 @@ void lightbar(uint8_t distanceFromLine ){
   
       //read all the switches
       workSwitch = digitalRead(WORKSW_PIN);  // read work switch
+      workSwitch ? digitalWrite(LED_PIN,HIGH) : digitalWrite(LED_PIN,LOW);
       
       if (steerConfig.SteerSwitch == 1)         //steer switch on - off
       {
@@ -397,3 +398,5 @@ void lightbar(uint8_t distanceFromLine ){
     #endif
 
   } // end of main loop
+
+  
