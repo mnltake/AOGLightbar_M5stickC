@@ -11,124 +11,124 @@
 #include <Arduino.h>
 #include <M5StickC.h>
 #include <FastLED.h>
-#include "BluetoothSerial.h"
+#define USE_BT_SERIAL 1 //USB = 0  Bluetooth Serial =1
+
+#if USE_BT_SERIAL
+  #include "BluetoothSerial.h"
   BluetoothSerial SerialAOG;
-  #define NUMPIXELS   31                 // Odd number dont use =0 
-  #define Neopixel_Pin 32                 //GPIO32:M5stickC  GPIO26:ATOMLite Set this to the pin number you are using for the Neopixel strip controll line
-  #define cmPerLightbarPixel  2          // Must be a multiple of cmPerDistInt
-  #define cmPerDistInt  2                // The number of centimeters represented by a change in 1 of the AOG cross track error byte
-  
-  CRGBArray<NUMPIXELS > leds;
+#else
+  #define SerialAOG Serial
+#endif
 
-  const uint8_t centerpixel = (NUMPIXELS-1)/2;
-  uint8_t Neopixel_Brightness = 150;// default brightness value between 0 and 255
+#define NUMPIXELS   31                 // Odd number dont use =0 
+#define Neopixel_Pin 32                 //GPIO32:M5stickC  GPIO26:ATOMLite Set this to the pin number you are using for the Neopixel strip controll line
+#define cmPerLightbarPixel  2          // Must be a multiple of cmPerDistInt
+#define cmPerDistInt  2                // The number of centimeters represented by a change in 1 of the AOG cross track error byte
 
+CRGBArray<NUMPIXELS > leds;
 
+const uint8_t centerpixel = (NUMPIXELS-1)/2;
+uint8_t Neopixel_Brightness = 150;// default brightness value between 0 and 255
 
- 
-  //--------------------------- Switch Input Pins ------------------------
-  #define STEERSW_PIN 26 //G26
-  #define WORKSW_PIN 33  //G33
-  #define REMOTE_PIN 0  //G0
-  #define ANALOG_SENSOR_PIN 36 //G36
+//--------------------------- Switch Input Pins ------------------------
+#define STEERSW_PIN 26 //G26
+#define WORKSW_PIN 33  //G33
+#define REMOTE_PIN 0  //G0
+#define ANALOG_SENSOR_PIN 36 //G36
 
-  #define CONST_180_DIVIDED_BY_PI 57.2957795130823
+#define CONST_180_DIVIDED_BY_PI 57.2957795130823
 
-  //loop time variables in microseconds  
-  const uint16_t LOOP_TIME = 20;  //50Hz    
-  uint32_t lastTime = LOOP_TIME;
-  uint32_t currentTime = LOOP_TIME;
-  
-  const uint16_t WATCHDOG_THRESHOLD = 100;
-  const uint16_t WATCHDOG_FORCE_VALUE = WATCHDOG_THRESHOLD + 2; // Should be greater than WATCHDOG_THRESHOLD
-  uint8_t watchdogTimer = WATCHDOG_FORCE_VALUE;
-  
-   //Parsing PGN
-  bool isPGNFound = false, isHeaderFound = false;
-  uint8_t pgn = 0, dataLength = 0, idx = 0;
-  int16_t tempHeader = 0;
+//loop time variables in microseconds  
+const uint16_t LOOP_TIME = 20;  //50Hz    
+uint32_t lastTime = LOOP_TIME;
+uint32_t currentTime = LOOP_TIME;
 
-  //show life in AgIO
-  uint8_t helloAgIO[] = {0x80,0x81, 0x7f, 0xC7, 1, 0, 0x47 };
-  uint8_t helloCounter=0;
+const uint16_t WATCHDOG_THRESHOLD = 100;
+const uint16_t WATCHDOG_FORCE_VALUE = WATCHDOG_THRESHOLD + 2; // Should be greater than WATCHDOG_THRESHOLD
+uint8_t watchdogTimer = WATCHDOG_FORCE_VALUE;
 
-  //fromAutoSteerData FD 253 - ActualSteerAngle*100 -5,6, Heading-7,8, 
-        //Roll-9,10, SwitchByte-11, pwmDisplay-12, CRC 13
-  uint8_t AOG[] = {0x80,0x81, 0x7f, 0xFD, 8, 0, 0, 0, 0, 0,0,0,0, 0xCC };
-  int16_t AOGSize = sizeof(AOG);
+ //Parsing PGN
+bool isPGNFound = false, isHeaderFound = false;
+uint8_t pgn = 0, dataLength = 0, idx = 0;
+int16_t tempHeader = 0;
 
-  // booleans to see if we are using CMPS or BNO08x
-  bool useCMPS = false;
-  bool useBNO08x = false;
+//show life in AgIO
+uint8_t helloAgIO[] = {0x80,0x81, 0x7f, 0xC7, 1, 0, 0x47 };
+uint8_t helloCounter=0;
 
+//fromAutoSteerData FD 253 - ActualSteerAngle*100 -5,6, Heading-7,8, 
+      //Roll-9,10, SwitchByte-11, pwmDisplay-12, CRC 13
+uint8_t AOG[] = {0x80,0x81, 0x7f, 0xFD, 8, 0, 0, 0, 0, 0,0,0,0, 0xCC };
+const uint8_t AOGSize = sizeof(AOG);
 
-  float bno08xHeading = 0;
-  double bno08xRoll = 0;
-  double bno08xPitch = 0;
+// booleans to see if we are using CMPS or BNO08x
+bool useCMPS = false;
+bool useBNO08x = false;
+float bno08xHeading = 0;
+double bno08xRoll = 0;
+double bno08xPitch = 0;
+int16_t bno08xHeading10x = 0;
+int16_t bno08xRoll10x = 0;
 
-  int16_t bno08xHeading10x = 0;
-  int16_t bno08xRoll10x = 0;
+//Relays
+bool isRelayActiveHigh = true;
+uint8_t relay = 0, relayHi = 0, uTurn = 0;
+uint8_t distanceFromLine = 255;  // cross track error - Autosteer PGN byte 10. Start at 255 so it is ignored untill a value is received from AOG
+uint8_t prevDistFromLine = 0;  // Used to only send the lightbar data if the distance has changed
 
- 
-  //Relays
-  bool isRelayActiveHigh = true;
-  uint8_t relay = 0, relayHi = 0, uTurn = 0;
-  uint8_t distanceFromLine = 255;  // cross track error - Autosteer PGN byte 10. Start at 255 so it is ignored untill a value is received from AOG
-  uint8_t prevDistFromLine = 0;  // Used to only send the lightbar data if the distance has changed
-  
-  //Switches
-  uint8_t remoteSwitch = 0, workSwitch = 0, steerSwitch = 1, switchByte = 0;
+//Switches
+uint8_t remoteSwitch = 0, workSwitch = 0, steerSwitch = 1, switchByte = 0;
 
-  //On Off
-  uint8_t guidanceStatus = 0;
+//On Off
+uint8_t guidanceStatus = 0;
 
-  //speed sent as *10
-  float gpsSpeed = 0;
-  
-  //steering variables
-  float steerAngleActual = 0;
-  float steerAngleSetPoint = 0; //the desired angle from AgOpen
-  int16_t steeringPosition = 0; //from steering sensor
-  float steerAngleError = 0; //setpoint - actual
-  
-  //pwm variables
-  int16_t pwmDrive = 0, pwmDisplay = 0;
-  float pValue = 0;
-  float errorAbs = 0;
-  float highLowPerDeg = 0; 
- 
-  //Steer switch button  ***********************************************************************************************************
-  uint8_t currentState = 1, reading, previous = 0;
-  uint8_t pulseCount = 0; // Steering Wheel Encoder
-  bool encEnable = false; //debounce flag
-  uint8_t thisEnc = 0, lastEnc = 0;
+//speed sent as *10
+float gpsSpeed = 0;
 
-   //Variables for settings  
-   struct Storage {
-      uint8_t Kp = 40;  //proportional gain
-      uint8_t lowPWM = 10;  //band of no action
-      int16_t wasOffset = 0;
-      uint8_t minPWM = 9;
-      uint8_t highPWM = 60;//max PWM value
-      float steerSensorCounts = 30;        
-      float AckermanFix = 1;     //sent as percent
-  };  Storage steerSettings;  //14 bytes
+//steering variables
+float steerAngleActual = 0;
+float steerAngleSetPoint = 0; //the desired angle from AgOpen
+int16_t steeringPosition = 0; //from steering sensor
+float steerAngleError = 0; //setpoint - actual
 
-   //Variables for settings - 0 is false  
-   struct Setup {
-      uint8_t InvertWAS = 0;
-      uint8_t IsRelayActiveHigh = 0; //if zero, active low (default)
-      uint8_t MotorDriveDirection = 0;
-      uint8_t SingleInputWAS = 1;
-      uint8_t CytronDriver = 1;
-      uint8_t SteerSwitch = 0;  //1 if switch selected
-      uint8_t SteerButton = 0;  //1 if button selected
-      uint8_t ShaftEncoder = 0;
-      uint8_t PressureSensor = 0;
-      uint8_t CurrentSensor = 0;
-      uint8_t PulseCountMax = 5;
-      uint8_t IsDanfoss = 0; 
-  };  Setup steerConfig;          //9 bytes
+//pwm variables
+int16_t pwmDrive = 0, pwmDisplay = 0;
+float pValue = 0;
+float errorAbs = 0;
+float highLowPerDeg = 0; 
+
+//Steer switch button  ***********************************************************************************************************
+uint8_t currentState = 1, reading, previous = 0;
+uint8_t pulseCount = 0; // Steering Wheel Encoder
+bool encEnable = false; //debounce flag
+uint8_t thisEnc = 0, lastEnc = 0;
+
+ //Variables for settings  
+ struct Storage {
+    uint8_t Kp = 40;  //proportional gain
+    uint8_t lowPWM = 10;  //band of no action
+    int16_t wasOffset = 0;
+    uint8_t minPWM = 9;
+    uint8_t highPWM = 60;//max PWM value
+    float steerSensorCounts = 30;        
+    float AckermanFix = 1;     //sent as percent
+};  Storage steerSettings;  //14 bytes
+
+ //Variables for settings - 0 is false  
+ struct Setup {
+    uint8_t InvertWAS = 0;
+    uint8_t IsRelayActiveHigh = 0; //if zero, active low (default)
+    uint8_t MotorDriveDirection = 0;
+    uint8_t SingleInputWAS = 1;
+    uint8_t CytronDriver = 1;
+    uint8_t SteerSwitch = 0;  //1 if switch selected
+    uint8_t SteerButton = 0;  //1 if button selected
+    uint8_t ShaftEncoder = 0;
+    uint8_t PressureSensor = 0;
+    uint8_t CurrentSensor = 0;
+    uint8_t PulseCountMax = 5;
+    uint8_t IsDanfoss = 0; 
+};  Setup steerConfig;          //9 bytes
 
 
 
@@ -177,32 +177,32 @@ void lightbar(uint8_t distanceFromLine ){
     pinMode(STEERSW_PIN, INPUT_PULLUP); 
     pinMode(REMOTE_PIN, INPUT_PULLUP); 
 
-    
+    M5.begin(true ,true ,false);
     //set up communication
-    SerialAOG.begin("M5stickC LightBar"); //Bluetooth Serial
+    #if USE_BT_SERIAL
+      SerialAOG.begin("M5stickC LightBar"); //Bluetooth Serial
+    #else
+      SerialAOG.begin(38400);
+    #endif
 
-  M5.begin();
-  M5.Lcd.setRotation(1);//1:PWR botton down 3:PWR button up
-  FastLED.addLeds<WS2811,Neopixel_Pin,GRB>(leds, NUMPIXELS ).setCorrection(TypicalLEDStrip);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  SerialAOG.write(helloAgIO,sizeof(helloAgIO));
-  Serial.println("start");
+    M5.Lcd.setRotation(1);//1:PWR botton down 3:PWR button up
+    FastLED.addLeds<WS2811,Neopixel_Pin,GRB>(leds, NUMPIXELS ).setCorrection(TypicalLEDStrip);
+    M5.Lcd.fillScreen(TFT_BLACK);
+    SerialAOG.write(helloAgIO,sizeof(helloAgIO));
+    Serial.println("start");
   }// End of Setup
 
   void loop()
   {
     M5.update();
- 
     // Loop triggers every 100 msec and sends back steer angle etc   
     currentTime = millis();
-   
     if (currentTime - lastTime >= LOOP_TIME)
     {
       lastTime = currentTime;
   
       //reset debounce
       encEnable = true;
-     
       //If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
       if (watchdogTimer++ > 250) watchdogTimer = WATCHDOG_FORCE_VALUE;
   
