@@ -1,4 +1,4 @@
-# AOpenGPS(v5.1.3)
+# AOpenGPS(v5.1.3 ~ v5.6.34)
 https://github.com/farmerbriantee/AgOpenGPS/releases
 
 # Libraries
