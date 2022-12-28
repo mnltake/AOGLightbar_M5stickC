@@ -11,7 +11,7 @@
 #include <Arduino.h>
 #include <M5StickC.h>
 #include <FastLED.h>
-#define USE_BT_SERIAL 0
+#define USE_BT_SERIAL 1 //USB = 0  Bluetooth Serial =1
 
 #if USE_BT_SERIAL
   #include "BluetoothSerial.h"
